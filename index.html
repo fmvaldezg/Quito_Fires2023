@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Mapbox GL JS Web Map</title>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        /* Add some CSS styles for your map container */
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div id='map'></div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiZm12YWxkZXpnODQiLCJhIjoiY2xqb29mYXBzMWg0YjNxbXVxbDVlZWVwNCJ9.nd2naVbA83Tz7N1uID8BlA';
+
+    map.on('load', function () {
+    map.addSource('heatmap-data', {
+        type: 'geojson',
+        data: 'path/to/your/data.geojson' // Replace with the path to your GeoJSON file
+    });
+
+    map.addLayer({
+        id: 'heatmap-layer',
+        type: 'heatmap',
+        source: 'heatmap-data',
+        maxzoom: 15, // Adjust as needed
+        paint: {
+            // Use the "brightness" field to set heatmap intensity
+            'heatmap-intensity': [
+                'interpolate',
+                ['linear'],
+                ['get', 'brightness'],
+                0, 0, // Minimum brightness value
+                100, 1 // Maximum brightness value
+            ],
+            'heatmap-color': [
+                'interpolate',
+                ['linear'],
+                ['heatmap-density'],
+                0, 'rgba(0, 0, 255, 0)', // Low density color
+                1, 'rgb(0, 255, 0)' // High density color
+            ],
+            'heatmap-radius': 25, // Adjust the radius as needed
+            'heatmap-opacity': 0.7 // Adjust the opacity as needed
+        }
+    });
+});
+
+
+
+</script>
+
+</body>
+</html>
