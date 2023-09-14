@@ -1,57 +1,302 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset='utf-8' />
-    <title>Mapbox GL JS Web Map</title>
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
-    <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
-    <style>
-        /* Add some CSS styles for your map container */
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    </style>
+<meta charset="utf-8">
+<title>Create a time slider</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css' rel='stylesheet' />
+<link href='https://api.mapbox.com/mapbox-assembly/v1.3.0/assembly.min.css' rel='stylesheet'>
+<script src='https://api.mapbox.com/mapbox-assembly/v1.3.0/assembly.js'></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
 </head>
 <body>
+<style>
+    .map-overlay {
+        position: absolute;
+        width: 25%;
+        top: 0;
+        left: 0;
+        padding: 10px;
+    }
 
-<div id='map'></div>
+    .map-overlay .map-overlay-inner {
+        background-color: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .map-overlay-inner {
+        font-family: sans-serif;
+        font-size: 8;
+    }
+
+    .map-overlay h2 {
+        line-height: 24px;
+        display: block;
+        margin: 0 0 10px;
+        font-family: sans-serif;
+        font-size: 10;
+        font-weight: bold;
+    }
+
+    .map-overlay .legend .bar {
+        height: 10px;
+        width: 100%;
+        background: linear-gradient(to right, yellow, red);
+    }
+
+    .map-overlay input {
+        background-color: transparent;
+        display: inline-block;
+        width: 100%;
+        position: relative;
+        margin: 0;
+        cursor: ew-resize;
+    }
+
+    .legend-container {
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .leg400 {
+        text-align: right;
+    }
+
+    .toggle-group {
+        display: flex;
+        margin-right: 18px;
+    }
+
+    .toggle-container {
+        display: flex;
+        align-items: center;
+        margin-right: 10px;
+    }
+
+    .toggle-container input[type='radio'] {
+        display: none;
+    }
+
+    .toggle {
+        background-color: #ccc;
+        padding: 4px 10px;
+        border-radius: 20px;
+        cursor: pointer;
+    }
+
+    .toggle input[type='radio']:checked + .toggle {
+        background-color: #45a049;
+        color: white;
+    }
+
+    .legend .value-container {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .legend .value-container .value {
+        flex: 1;
+        font-size: 10px;
+    }
+
+    .textos {
+        font-size: 12px;
+    }
+
+
+</style>
+
+<div id="map"></div>
+
+<div class="map-overlay top">
+    <div class="map-overlay-inner">
+        <h4 class='txt-m txt-bold mb6'>Incendios desde agosto 01 - 2023</h4>
+        <label class='textos' id="date"></label>
+        <input id="slider" type="range" min="0" max="43" step="1" value="0">
+    </div>
+    <div class="map-overlay-inner">
+        <div id="legend" class="legend">
+            <div class="bar"></div>
+            <div class="value-container">
+                <div class="value">200</div>
+                <div class="value leg400">400</div>
+            </div>
+            <div class='textos'>Luminosidad (grados Kelvin)</div>
+        </div>
+
+        <h4 class='txt-m txt-bold mb6'>Seleccionar dia/noche</h4>
+        <div class='mb12 mr12 toggle-group align-center'>
+            <label class='toggle-container'>
+                <input name='toggle-1' type='radio' value="D" />
+                <div class='toggle'>Día</div>
+            </label>
+            <label class='toggle-container'>
+                <input name='toggle-1' type='radio' value="N"/>
+                <div class='toggle'>Noche</div>
+            </label>
+            <label class='toggle-container'>
+                <input checked name='toggle-1' type='radio' value="All"/>
+                <div class='toggle'>Todos</div>
+            </label>
+        </div>
+    </div>
+</div>
 
 <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZm12YWxkZXpnODQiLCJhIjoiY2xqb29mYXBzMWg0YjNxbXVxbDVlZWVwNCJ9.nd2naVbA83Tz7N1uID8BlA';
+mapboxgl.accessToken = 'pk.eyJ1IjoiZm12YWxkZXpnODQiLCJhIjoiY2w5eWJzMzkwMDNiaDNvbGltamV1ajdvNiJ9.esyugI1HyBVPAQcRN551xw';
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/dark-v11',
+    center: [-78.46427, -0.20577],
+    zoom: 10.5
+});
 
-    map.on('load', function () {
-    map.addSource('heatmap-data', {
-        type: 'geojson',
-        data: 'path/to/your/data.geojson' // Replace with the path to your GeoJSON file
+const dates = [
+    '2023-08-01',
+    '2023-08-02',
+    '2023-08-03',
+    '2023-08-04',
+    '2023-08-05',
+    '2023-08-06',
+    '2023-08-07',
+    '2023-08-08',
+    '2023-08-09',
+    '2023-08-10',
+    '2023-08-11',
+    '2023-08-12',
+    '2023-08-13',
+    '2023-08-14',
+    '2023-08-15',
+    '2023-08-16',
+    '2023-08-17',
+    '2023-08-18',
+    '2023-08-19',
+    '2023-08-20',
+    '2023-08-21',
+    '2023-08-22',
+    '2023-08-23',
+    '2023-08-24',
+    '2023-08-25',
+    '2023-08-26',
+    '2023-08-27',
+    '2023-08-28',
+    '2023-08-29',
+    '2023-08-30',
+    '2023-09-01',
+    '2023-09-02',
+    '2023-09-03',
+    '2023-09-04',
+    '2023-09-05',
+    '2023-09-06',
+    '2023-09-07',
+    '2023-09-08',
+    '2023-09-09',
+    '2023-09-10',
+    '2023-09-11',
+    '2023-09-12',
+    '2023-09-13',
+    '2023-09-14'
+];
+
+let dayNightFilter = null;
+
+function filterByDateAndDayNight(dateIndex, dayNight) {
+    const dateFilter = ['<=', ['get', 'acq_date'], dates[dateIndex]];
+    let dayNightFilterValue = null;
+    
+    if (dayNight === 'D') {
+        dayNightFilterValue = ['==', ['get', 'daynight'], 'D'];
+    } else if (dayNight === 'N') {
+        dayNightFilterValue = ['==', ['get', 'daynight'], 'N'];
+    }
+
+    const combinedFilter = ['all', dateFilter];
+
+    if (dayNightFilterValue !== null) {
+        combinedFilter.push(dayNightFilterValue);
+    }
+
+    map.setFilter('fires2023-layer', combinedFilter);
+    map.setFilter('fires-labels', combinedFilter);
+
+    document.getElementById('date').textContent = dates[dateIndex];
+}
+
+map.on('load', () => {
+    map.addSource('fires2023', {
+        'type': 'geojson',
+        data: 'https://raw.githubusercontent.com/fmvaldezg/Quito_Fires2023/main/data/output_file.json'
     });
 
     map.addLayer({
-        id: 'heatmap-layer',
-        type: 'heatmap',
-        source: 'heatmap-data',
-        maxzoom: 15, // Adjust as needed
-        paint: {
-            // Use the "brightness" field to set heatmap intensity
-            'heatmap-intensity': [
+        'id': 'fires2023-layer',
+        'type': 'circle',
+        'source': 'fires2023',
+        'paint': {
+            'circle-color': [
                 'interpolate',
                 ['linear'],
                 ['get', 'brightness'],
-                0, 0, // Minimum brightness value
-                100, 1 // Maximum brightness value
+                200,
+                'yellow',
+                400,
+                'red'
             ],
-            'heatmap-color': [
+            'circle-opacity': 0.75,
+            'circle-radius': [
                 'interpolate',
                 ['linear'],
-                ['heatmap-density'],
-                0, 'rgba(0, 0, 255, 0)', // Low density color
-                1, 'rgb(0, 255, 0)' // High density color
-            ],
-            'heatmap-radius': 25, // Adjust the radius as needed
-            'heatmap-opacity': 0.7 // Adjust the opacity as needed
+                ['get', 'brightness'],
+                280,
+                5,
+                400,
+                20
+            ]
         }
     });
+
+    map.addLayer({
+        'id': 'fires-labels',
+        'type': 'symbol',
+        'source': 'fires2023',
+        'layout': {
+            'text-field': ['concat', ['to-string', ['get', 'daynight']], ''],
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 10
+        },
+        'paint': {
+            'text-color': '#5e5959'
+        }
+    });
+
+    // Set filter to the first date and 'all' by default
+    filterByDateAndDayNight(0, 'all');
+
+    document.getElementById('slider').addEventListener('input', (e) => {
+        const dateIndex = parseInt(e.target.value, 10);
+        const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
+        const dayNight = selectedOption ? selectedOption.value : 'all';
+        filterByDateAndDayNight(dateIndex, dayNight);
+    });
+
+    // Add event listeners for the toggle buttons
+    const toggleButtons = document.querySelectorAll('input[name="toggle-1"]');
+    toggleButtons.forEach((button) => {
+        button.addEventListener('change', () => {
+            const dateIndex = parseInt(document.getElementById('slider').value, 10);
+            const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
+            const dayNight = selectedOption ? selectedOption.value : 'all';
+            filterByDateAndDayNight(dateIndex, dayNight);
+        });
+    });
 });
-
-
 
 </script>
 
