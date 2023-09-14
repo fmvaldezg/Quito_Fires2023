@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Create a time slider</title>
+<title>Incendios Verano 2023</title>
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
 <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css' rel='stylesheet' />
@@ -110,7 +110,6 @@ body { margin: 0; padding: 0; }
         font-size: 12px;
     }
 
-
 </style>
 
 <div id="map"></div>
@@ -119,7 +118,11 @@ body { margin: 0; padding: 0; }
     <div class="map-overlay-inner">
         <h4 class='txt-m txt-bold mb6'>Incendios desde agosto 01 - 2023</h4>
         <label class='textos' id="date"></label>
+        <div class='range range--darken50'>
         <input id="slider" type="range" min="0" max="43" step="1" value="0">
+        </div>
+        <button class="btn btn--stroke btn--green" id="play-button"><svg class='icon'><use xlink:href='#icon-play'/></svg></button>
+        <button class="btn btn--stroke btn--red" id="pause-button"><svg class='icon'><use xlink:href='#icon-pause'/></svg></button>
     </div>
     <div class="map-overlay-inner">
         <div id="legend" class="legend">
@@ -206,6 +209,8 @@ const dates = [
 ];
 
 let dayNightFilter = null;
+let dateIndex = 0;
+let animationInterval = null;
 
 function filterByDateAndDayNight(dateIndex, dayNight) {
     const dateFilter = ['<=', ['get', 'acq_date'], dates[dateIndex]];
@@ -228,6 +233,39 @@ function filterByDateAndDayNight(dateIndex, dayNight) {
 
     document.getElementById('date').textContent = dates[dateIndex];
 }
+
+    document.getElementById('play-button').addEventListener('click', () => {
+        document.getElementById('play-button').disabled = true;
+        document.getElementById('pause-button').disabled = false;
+
+        animationInterval = setInterval(() => {
+            // Increment the date index
+            dateIndex++;
+
+            // Reset the date index to 0 if it goes beyond the maximum
+            if (dateIndex >= dates.length) {
+                dateIndex = 0;
+            }
+
+            // Update the slider value
+            document.getElementById('slider').value = dateIndex;
+
+            // Get the selected day/night option
+            const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
+            const dayNight = selectedOption ? selectedOption.value : 'all';
+
+            // Update the map based on the new date and day/night option
+            filterByDateAndDayNight(dateIndex, dayNight);
+
+        }, 500); // Interval in milliseconds
+    });
+
+    document.getElementById('pause-button').addEventListener('click', () => {
+        document.getElementById('play-button').disabled = false;
+        document.getElementById('pause-button').disabled = true;
+        
+        clearInterval(animationInterval); // Stop the animation interval
+    });
 
 map.on('load', () => {
     map.addSource('fires2023', {
@@ -295,6 +333,37 @@ map.on('load', () => {
             const dayNight = selectedOption ? selectedOption.value : 'all';
             filterByDateAndDayNight(dateIndex, dayNight);
         });
+    });
+
+    let dateIndex = 0; // Initialize the date index
+
+    // Function to update the time slider and map
+    function updateSliderAndMap() {
+        // Increment the date index
+        dateIndex++;
+
+        // Reset the date index to 0 if it goes beyond the maximum
+        if (dateIndex >= dates.length) {
+            dateIndex = 0;
+        }
+
+        // Update the slider value
+        document.getElementById('slider').value = dateIndex;
+
+        // Get the selected day/night option
+        const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
+        const dayNight = selectedOption ? selectedOption.value : 'all';
+
+        // Update the map based on the new date and day/night option
+        filterByDateAndDayNight(dateIndex, dayNight);
+    }
+
+    // Set an interval to automatically update the slider and map (e.g., every 2 seconds)
+    animationInterval = setInterval(updateSliderAndMap, 500);
+
+    // Stop the animation when the user interacts with the slider
+    document.getElementById('slider').addEventListener('input', () => {
+        clearInterval(animationInterval); // Stop the animation interval
     });
 });
 
