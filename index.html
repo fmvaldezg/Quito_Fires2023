@@ -156,10 +156,12 @@ body { margin: 0; padding: 0; }
 mapboxgl.accessToken = 'pk.eyJ1IjoiZm12YWxkZXpnODQiLCJhIjoiY2w5eWJzMzkwMDNiaDNvbGltamV1ajdvNiJ9.esyugI1HyBVPAQcRN551xw';
 const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/dark-v11',
+    style: 'mapbox://styles/mapbox/dark-v11?optimize=true',
     center: [-78.46427, -0.20577],
-    zoom: 10.5
+    zoom: 10.5,
+    attributionControl: true,
 });
+
 
 const dates = [
     '2023-08-01',
@@ -270,7 +272,8 @@ function filterByDateAndDayNight(dateIndex, dayNight) {
 map.on('load', () => {
     map.addSource('fires2023', {
         'type': 'geojson',
-        data: 'https://raw.githubusercontent.com/fmvaldezg/Quito_Fires2023/main/data/output_file.json'
+        data: 'https://raw.githubusercontent.com/fmvaldezg/Quito_Fires2023/main/data/output_file.json',
+        'attribution': 'data source: NASA FIRMS @https://earthdata.nasa.gov/firms | Map by © Felipe Valdez'
     });
 
     map.addLayer({
@@ -313,6 +316,14 @@ map.on('load', () => {
             'text-color': '#5e5959'
         }
     });
+
+    const scale = new mapboxgl.ScaleControl({
+        maxWidth: 80,
+        unit: 'imperial'
+    });
+    map.addControl(scale);
+
+    scale.setUnit('metric');
 
     // Set filter to the first date and 'all' by default
     filterByDateAndDayNight(0, 'all');
@@ -366,6 +377,7 @@ map.on('load', () => {
         clearInterval(animationInterval); // Stop the animation interval
     });
 });
+
 
 </script>
 
