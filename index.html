@@ -159,7 +159,7 @@ const map = new mapboxgl.Map({
     style: 'mapbox://styles/mapbox/dark-v11?optimize=true',
     center: [-78.46427, -0.20577],
     zoom: 10.5,
-    attributionControl: true,
+    attributionControl: false,
 });
 
 
@@ -273,7 +273,7 @@ map.on('load', () => {
     map.addSource('fires2023', {
         'type': 'geojson',
         data: 'https://raw.githubusercontent.com/fmvaldezg/Quito_Fires2023/main/data/output_file.json',
-        'attribution': 'data source: NASA FIRMS @https://earthdata.nasa.gov/firms | Map by © Felipe Valdez'
+        //'attribution': 'data source: NASA FIRMS @https://earthdata.nasa.gov/firms | Map by © Felipe Valdez'
     });
 
     map.addLayer({
@@ -378,6 +378,14 @@ map.on('load', () => {
     });
 });
 
+map.addControl(
+      new mapboxgl.AttributionControl({
+        compact: true,
+        customAttribution: mapboxgl.accessToken
+          ? 'Fire data <a href="https://earthdata.nasa.gov/firms">NASA FIRMS</a>| Map by © Felipe Valdez' // Included by mapbox
+          : '© <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+      }),
+    );
 
 </script>
 
