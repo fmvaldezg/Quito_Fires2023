@@ -116,12 +116,12 @@ body { margin: 0; padding: 0; }
 
 <div class="map-overlay top">
     <div class="map-overlay-inner">
-        <h4 class='txt-m txt-bold mb6'>Incendios desde agosto 01 - 2023 hasta agosto 19</h4>
+        <h4 class='txt-m txt-bold mb6' id="date-range-header">Cargando incendios...</h4>
         <label class='textos' id="date"></label>
         <div class='range range--darken50'>
-        <input id="slider" type="range" min="0" max="48" step="1" value="0">
+        <input id="slider" type="range" min="0" max="0" step="1" value="0">
         </div>
-        <button class="btn btn--stroke btn--green" id="play-button"><svg class='icon'><use xlink:href='#icon-play'/></svg></button>
+        <button class="btn btn--stroke btn--green" id="play-button" disabled><svg class='icon'><use xlink:href='#icon-play'/></svg></button>
         <button class="btn btn--stroke btn--red" id="pause-button"><svg class='icon'><use xlink:href='#icon-pause'/></svg></button>
     </div>
     <div class="map-overlay-inner">
@@ -163,57 +163,9 @@ const map = new mapboxgl.Map({
 });
 
 
-const dates = [
-    '2023-08-01',
-    '2023-08-02',
-    '2023-08-03',
-    '2023-08-04',
-    '2023-08-05',
-    '2023-08-06',
-    '2023-08-07',
-    '2023-08-08',
-    '2023-08-09',
-    '2023-08-10',
-    '2023-08-11',
-    '2023-08-12',
-    '2023-08-13',
-    '2023-08-14',
-    '2023-08-15',
-    '2023-08-16',
-    '2023-08-17',
-    '2023-08-18',
-    '2023-08-19',
-    '2023-08-20',
-    '2023-08-21',
-    '2023-08-22',
-    '2023-08-23',
-    '2023-08-24',
-    '2023-08-25',
-    '2023-08-26',
-    '2023-08-27',
-    '2023-08-28',
-    '2023-08-29',
-    '2023-08-30',
-    '2023-09-01',
-    '2023-09-02',
-    '2023-09-03',
-    '2023-09-04',
-    '2023-09-05',
-    '2023-09-06',
-    '2023-09-07',
-    '2023-09-08',
-    '2023-09-09',
-    '2023-09-10',
-    '2023-09-11',
-    '2023-09-12',
-    '2023-09-13',
-    '2023-09-14',
-    '2023-09-15',
-    '2023-09-16',
-    '2023-09-17',
-    '2023-09-18',
-    '2023-09-19'
-];
+const GEOJSON_URL = 'https://raw.githubusercontent.com/fmvaldezg/Quito_Fires2023/main/data/output_file.json';
+
+let dates = [];
 
 let dayNightFilter = null;
 let dateIndex = 0;
@@ -277,7 +229,7 @@ function filterByDateAndDayNight(dateIndex, dayNight) {
 map.on('load', () => {
     map.addSource('fires2023', {
         'type': 'geojson',
-        data: 'https://raw.githubusercontent.com/fmvaldezg/Quito_Fires2023/main/data/output_file.json',
+        data: GEOJSON_URL,
         //'attribution': 'data source: NASA FIRMS @https://earthdata.nasa.gov/firms | Map by © Felipe Valdez'
     });
 
@@ -330,57 +282,55 @@ map.on('load', () => {
 
     scale.setUnit('metric');
 
-    // Set filter to the first date and 'all' by default
-    filterByDateAndDayNight(0, 'all');
+    const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
-    document.getElementById('slider').addEventListener('input', (e) => {
-        const dateIndex = parseInt(e.target.value, 10);
-        const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
-        const dayNight = selectedOption ? selectedOption.value : 'all';
-        filterByDateAndDayNight(dateIndex, dayNight);
-    });
-
-    // Add event listeners for the toggle buttons
-    const toggleButtons = document.querySelectorAll('input[name="toggle-1"]');
-    toggleButtons.forEach((button) => {
-        button.addEventListener('change', () => {
-            const dateIndex = parseInt(document.getElementById('slider').value, 10);
-            const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
-            const dayNight = selectedOption ? selectedOption.value : 'all';
-            filterByDateAndDayNight(dateIndex, dayNight);
-        });
-    });
-
-    let dateIndex = 0; // Initialize the date index
-
-    // Function to update the time slider and map
-    function updateSliderAndMap() {
-        // Increment the date index
-        dateIndex++;
-
-        // Reset the date index to 0 if it goes beyond the maximum
-        if (dateIndex >= dates.length) {
-            dateIndex = 0;
-        }
-
-        // Update the slider value
-        document.getElementById('slider').value = dateIndex;
-
-        // Get the selected day/night option
-        const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
-        const dayNight = selectedOption ? selectedOption.value : 'all';
-
-        // Update the map based on the new date and day/night option
-        filterByDateAndDayNight(dateIndex, dayNight);
+    function formatSpanishDate(dateStr) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return `${day} de ${monthNames[month - 1]} de ${year}`;
     }
 
-    // Set an interval to automatically update the slider and map (e.g., every 2 seconds)
-    animationInterval = setInterval(updateSliderAndMap, 500);
+    // Derive the available dates from the live data instead of a hardcoded
+    // list, so the slider/header always reflect whatever the automated
+    // FIRMS fetch has published.
+    fetch(GEOJSON_URL)
+        .then((response) => response.json())
+        .then((geojson) => {
+            dates = [...new Set(geojson.features.map((f) => f.properties.acq_date))].sort();
+            const lastIndex = dates.length - 1;
 
-    // Stop the animation when the user interacts with the slider
-    document.getElementById('slider').addEventListener('input', () => {
-        clearInterval(animationInterval); // Stop the animation interval
-    });
+            const slider = document.getElementById('slider');
+            slider.max = lastIndex;
+            slider.value = lastIndex;
+
+            document.getElementById('date-range-header').textContent =
+                `Incendios desde ${formatSpanishDate(dates[0])} hasta ${formatSpanishDate(dates[lastIndex])}`;
+
+            // Default to showing all current data rather than only the
+            // oldest date.
+            filterByDateAndDayNight(lastIndex, 'all');
+
+            document.getElementById('play-button').disabled = false;
+
+            slider.addEventListener('input', (e) => {
+                clearInterval(animationInterval);
+                document.getElementById('play-button').disabled = false;
+                document.getElementById('pause-button').disabled = true;
+                const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
+                const dayNight = selectedOption ? selectedOption.value : 'all';
+                filterByDateAndDayNight(parseInt(e.target.value, 10), dayNight);
+            });
+
+            // Add event listeners for the toggle buttons
+            const toggleButtons = document.querySelectorAll('input[name="toggle-1"]');
+            toggleButtons.forEach((button) => {
+                button.addEventListener('change', () => {
+                    const selectedOption = document.querySelector('input[name="toggle-1"]:checked');
+                    const dayNight = selectedOption ? selectedOption.value : 'all';
+                    filterByDateAndDayNight(parseInt(slider.value, 10), dayNight);
+                });
+            });
+        });
 });
 
 map.addControl(
