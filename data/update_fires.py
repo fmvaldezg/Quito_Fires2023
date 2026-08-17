@@ -7,6 +7,7 @@ import io
 import json
 import os
 import sys
+import time
 from datetime import date, timedelta
 
 import requests
@@ -14,9 +15,12 @@ import requests
 MAP_KEY_ENV = "FIRMS_MAP_KEY"
 SOURCE = "VIIRS_SNPP_NRT"
 BBOX = "-81.5,-5.1,-75.0,1.5"  # west,south,east,north - whole Ecuador
-DAY_RANGE = 3  # max allowed for VIIRS_SNPP_NRT is 5 - do not raise past that
+DAY_RANGE = 5  # max allowed for VIIRS_SNPP_NRT - do not raise past that
 ROLLING_WINDOW_DAYS = 90
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "output_file.json")
+
+MAX_FETCH_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 5  # multiplied by attempt number between retries
 
 # FIRMS CSV column -> GeoJSON property name, to match index.html's paint
 # expressions which were written against the old archive-download schema.
@@ -30,9 +34,21 @@ NUMERIC_FIELDS = {"latitude", "longitude", "brightness", "bright_t31", "frp", "s
 
 def fetch_csv_rows(map_key: str) -> list[dict]:
     url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/{SOURCE}/{BBOX}/{DAY_RANGE}"
-    response = requests.get(url, timeout=30)
-    response.raise_for_status()
-    return list(csv.DictReader(io.StringIO(response.text)))
+
+    last_error = None
+    for attempt in range(1, MAX_FETCH_ATTEMPTS + 1):
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            return list(csv.DictReader(io.StringIO(response.text)))
+        except requests.exceptions.RequestException as exc:
+            last_error = exc
+            if attempt < MAX_FETCH_ATTEMPTS:
+                wait = RETRY_BACKOFF_SECONDS * attempt
+                print(f"fetch attempt {attempt} failed ({exc}); retrying in {wait}s", file=sys.stderr)
+                time.sleep(wait)
+
+    raise last_error
 
 
 def row_to_feature(row: dict) -> dict:
